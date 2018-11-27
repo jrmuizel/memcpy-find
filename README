@@ -1,0 +1,6 @@
+To use pass the name of a llvm ir file as the first argument.
+
+In rust you can get these by adding --emit=llvm-ir to rust command line.
+They show up in target/release/deps/*.ll
+
+The bitcode files should work too, but have not been tested.
