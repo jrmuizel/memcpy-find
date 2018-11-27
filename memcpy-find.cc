@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    sort(memcpys.begin(), memcpys.end(), [](auto& x, auto &y) { return get<1>(x) > get<1>(y); });
+    std::sort(memcpys.begin(), memcpys.end(), [](auto& x, auto &y) { return get<1>(x) > get<1>(y); });
     for (auto& i : memcpys) {
         auto callInst = get<0>(i);
         auto size = get<1>(i);
