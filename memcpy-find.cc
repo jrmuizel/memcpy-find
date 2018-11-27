@@ -23,9 +23,10 @@ int main(int argc, char **argv) {
 
     const char *fileName;
     if (argc > 1) {
-            fileName = argv[1];
+        fileName = argv[1];
     } else {
-            fileName = "out.ll";
+        printf("missing ir filename\n");
+        abort();
     }
 
     Expected<std::unique_ptr<Module> > m = parseIRFile(fileName, Err, context);
@@ -59,8 +60,8 @@ int main(int argc, char **argv) {
                         auto size_operand = callInst->getOperand(2);
                         auto size_constant = dyn_cast<ConstantInt>(size_operand);
                         if (!size_constant) {
-                                //printf("not constant\n");
-                                continue;
+                            //printf("not constant\n");
+                            continue;
                         }
 
                         auto size = size_constant->getValue().getLimitedValue();
@@ -73,30 +74,30 @@ int main(int argc, char **argv) {
 
     sort(memcpys.begin(), memcpys.end(), [](auto& x, auto &y) { return get<1>(x) > get<1>(y); });
     for (auto& i : memcpys) {
-            auto callInst = get<0>(i);
-            auto size = get<1>(i);
-            auto function = get<2>(i);
-            MDNode* metadata = callInst->getMetadata("dbg");
-            if (!metadata) {
-                    //printf("no dbg\n");
-                    continue;
+        auto callInst = get<0>(i);
+        auto size = get<1>(i);
+        auto function = get<2>(i);
+        MDNode* metadata = callInst->getMetadata("dbg");
+        if (!metadata) {
+            //printf("no dbg\n");
+            continue;
+        }
+        cout << "memcpy" << " of " << size << " in " << function->getName().data() << " @ " << std::endl;
+        DILocation *debugLocation = dyn_cast<DILocation>(metadata);
+        while (debugLocation) {
+            DILocalScope *scope = debugLocation->getScope();
+            cout << "  ";
+            if (scope) {
+                DISubprogram *subprogram = scope->getSubprogram();
+                if (subprogram) {
+                    const char* name = subprogram->getName().data();
+                    cout << name << " ";
+                }
             }
-            cout << "memcpy" << " of " << size << " in " << function->getName().data() << " @ " << std::endl;
-            DILocation *debugLocation = dyn_cast<DILocation>(metadata);
-            while (debugLocation) {
-                    DILocalScope *scope = debugLocation->getScope();
-                    cout << "  ";
-                    if (scope) {
-                            DISubprogram *subprogram = scope->getSubprogram();
-                            if (subprogram) {
-                                    const char* name = subprogram->getName().data();
-                                    cout << name << " ";
-                            }
-                    }
 
-                    cout << debugLocation->getFilename().data() << ":" << debugLocation->getLine() << std::endl;
-                    debugLocation = debugLocation->getInlinedAt();
-            }
+            cout << debugLocation->getFilename().data() << ":" << debugLocation->getLine() << std::endl;
+            debugLocation = debugLocation->getInlinedAt();
+        }
     }
 
 }
