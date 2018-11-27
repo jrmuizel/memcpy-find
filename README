@@ -3,4 +3,10 @@ To use pass the name of a llvm ir file as the first argument.
 In rust you can get these by adding --emit=llvm-ir to rust command line.
 They show up in target/release/deps/*.ll
 
+This can usually be done with `RUSTFLAGS='-g --emit=llvm-ir' cargo build --release`
+This will generate .ll files for all dependencies as well. I've run into issues with
+that not working: https://github.com/rust-lang/rust/issues/56290. If you run into this
+you can also do `RUSTFLAGS='-g' cargo build --release -v` and get the command line and
+just append `--emit=llvm-ir`
+
 The bitcode files should work too, but have not been tested.
