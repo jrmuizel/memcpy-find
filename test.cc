@@ -32,6 +32,7 @@ int main(int argc, char **argv) {
     if (!m) {
         errs() << toString(m.takeError()) << "\n";
     }
+    vector<tuple<CallInst*, uint64_t, Function*>> memcpys;
     {
         auto &functionList = m->get()->getFunctionList();
         for (auto &function : functionList) {
@@ -61,32 +62,41 @@ int main(int argc, char **argv) {
                                 //printf("not constant\n");
                                 continue;
                         }
+
                         auto size = size_constant->getValue().getLimitedValue();
-                        MDNode* metadata = callInst->getMetadata("dbg");
-                        if (!metadata) {
-                                //printf("no dbg\n");
-                                continue;
-                        }
-                        std::cout << cfName.data() << " of " << size << " in " << function.getName().data() << " @ " << std::endl;
-                        DILocation *debugLocation = dyn_cast<DILocation>(metadata);
-                        while (debugLocation) {
-                                DILocalScope *scope = debugLocation->getScope();
-                                if (scope) {
-                                        DISubprogram *subprogram = scope->getSubprogram();
-                                        if (subprogram) {
-                                                const char* name = subprogram->getName().data();
-                                                std::cout << "  " << name << " ";
-                                        }
-                                }
-                                std::cout << "  " << debugLocation->getFilename().data() << ":" << debugLocation->getLine() << std::endl;
-                                debugLocation = debugLocation->getInlinedAt();
-                        }
-                    } else {
-                        //printf("not memcpy\n");
+                        memcpys.push_back({callInst, size, &function});
                     }
                 }
             }
         }
+    }
+
+    sort(memcpys.begin(), memcpys.end(), [](auto& x, auto &y) { return get<1>(x) > get<1>(y); });
+    for (auto& i : memcpys) {
+            auto callInst = get<0>(i);
+            auto size = get<1>(i);
+            auto function = get<2>(i);
+            MDNode* metadata = callInst->getMetadata("dbg");
+            if (!metadata) {
+                    //printf("no dbg\n");
+                    continue;
+            }
+            cout << "memcpy" << " of " << size << " in " << function->getName().data() << " @ " << std::endl;
+            DILocation *debugLocation = dyn_cast<DILocation>(metadata);
+            while (debugLocation) {
+                    DILocalScope *scope = debugLocation->getScope();
+                    cout << "  ";
+                    if (scope) {
+                            DISubprogram *subprogram = scope->getSubprogram();
+                            if (subprogram) {
+                                    const char* name = subprogram->getName().data();
+                                    cout << name << " ";
+                            }
+                    }
+
+                    cout << debugLocation->getFilename().data() << ":" << debugLocation->getLine() << std::endl;
+                    debugLocation = debugLocation->getInlinedAt();
+            }
     }
 
 }
