@@ -77,12 +77,12 @@ int main(int argc, char **argv) {
         auto callInst = get<0>(i);
         auto size = get<1>(i);
         auto function = get<2>(i);
+        cout << "memcpy" << " of " << size << " in " << function->getName().data() << " @ " << std::endl;
         MDNode* metadata = callInst->getMetadata("dbg");
         if (!metadata) {
-            //printf("no dbg\n");
+            cout << "  no debug info" << endl;
             continue;
         }
-        cout << "memcpy" << " of " << size << " in " << function->getName().data() << " @ " << std::endl;
         DILocation *debugLocation = dyn_cast<DILocation>(metadata);
         while (debugLocation) {
             DILocalScope *scope = debugLocation->getScope();
