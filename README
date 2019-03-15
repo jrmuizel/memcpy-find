@@ -10,3 +10,5 @@ you can also do `RUSTFLAGS='-g' cargo build --release -v` and get the command li
 just append `--emit=llvm-ir`
 
 The bitcode files should work too, but have not been tested.
+
+You can demangle the names using rustfilt. (cargo install rustfilt)
