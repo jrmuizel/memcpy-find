@@ -20,7 +20,6 @@ using namespace llvm;
 using namespace std;
 
 void print_all(vector<tuple<CallInst*, uint64_t, Function*>> &memcpys) {
-    std::sort(memcpys.begin(), memcpys.end(), [](auto& x, auto &y) { return get<1>(x) > get<1>(y); });
     for (auto& i : memcpys) {
         auto callInst = get<0>(i);
         auto size = get<1>(i);
@@ -50,7 +49,6 @@ void print_all(vector<tuple<CallInst*, uint64_t, Function*>> &memcpys) {
 }
 
 void print_summary(vector<tuple<CallInst*, uint64_t, Function*>> &memcpys) {
-    std::sort(memcpys.begin(), memcpys.end(), [](auto& x, auto &y) { return get<1>(x) > get<1>(y); });
     for (auto& i : memcpys) {
         auto callInst = get<0>(i);
         auto size = get<1>(i);
@@ -120,6 +118,15 @@ int main(int argc, char **argv) {
             }
         }
     }
+
+    std::sort(memcpys.begin(), memcpys.end(), [](auto& x, auto &y) {
+              if (get<1>(y) == get<1>(x)) {
+                return get<2>(x) > get<2>(y);
+              } else {
+                return get<1>(x) > get<1>(y);
+              }
+              });
+
     if (summary) {
         print_summary(memcpys);
     } else {
