@@ -15,8 +15,50 @@
 #include "llvm/Bitcode/BitcodeReader.h"
 #include <iostream>
 
+
 using namespace llvm;
 using namespace std;
+
+void print_all(vector<tuple<CallInst*, uint64_t, Function*>> &memcpys) {
+    std::sort(memcpys.begin(), memcpys.end(), [](auto& x, auto &y) { return get<1>(x) > get<1>(y); });
+    for (auto& i : memcpys) {
+        auto callInst = get<0>(i);
+        auto size = get<1>(i);
+        auto function = get<2>(i);
+        cout << "memcpy" << " of " << size << " in " << function->getName().data() << " @ " << std::endl;
+        MDNode* metadata = callInst->getMetadata("dbg");
+        if (!metadata) {
+            cout << "  no debug info" << endl;
+            continue;
+        }
+        DILocation *debugLocation = dyn_cast<DILocation>(metadata);
+        while (debugLocation) {
+            DILocalScope *scope = debugLocation->getScope();
+            cout << "  ";
+            if (scope) {
+                DISubprogram *subprogram = scope->getSubprogram();
+                if (subprogram) {
+                    const char* name = subprogram->getName().data();
+                    cout << name << " ";
+                }
+            }
+
+            cout << debugLocation->getFilename().data() << ":" << debugLocation->getLine() << std::endl;
+            debugLocation = debugLocation->getInlinedAt();
+        }
+    }
+}
+
+void print_summary(vector<tuple<CallInst*, uint64_t, Function*>> &memcpys) {
+    std::sort(memcpys.begin(), memcpys.end(), [](auto& x, auto &y) { return get<1>(x) > get<1>(y); });
+    for (auto& i : memcpys) {
+        auto callInst = get<0>(i);
+        auto size = get<1>(i);
+        auto function = get<2>(i);
+        cout << "memcpy" << " of " << size << std::endl;
+    }
+}
+
 int main(int argc, char **argv) {
     LLVMContext context;
     SMDiagnostic Err;
@@ -27,6 +69,13 @@ int main(int argc, char **argv) {
     } else {
         printf("missing ir filename\n");
         abort();
+    }
+    bool summary = false;
+
+    if (argc > 2) {
+        if (std::string(argv[2]) == "summary") {
+            summary = true;
+        }
     }
 
     Expected<std::unique_ptr<Module> > m = parseIRFile(fileName, Err, context);
@@ -71,33 +120,9 @@ int main(int argc, char **argv) {
             }
         }
     }
-
-    std::sort(memcpys.begin(), memcpys.end(), [](auto& x, auto &y) { return get<1>(x) > get<1>(y); });
-    for (auto& i : memcpys) {
-        auto callInst = get<0>(i);
-        auto size = get<1>(i);
-        auto function = get<2>(i);
-        cout << "memcpy" << " of " << size << " in " << function->getName().data() << " @ " << std::endl;
-        MDNode* metadata = callInst->getMetadata("dbg");
-        if (!metadata) {
-            cout << "  no debug info" << endl;
-            continue;
-        }
-        DILocation *debugLocation = dyn_cast<DILocation>(metadata);
-        while (debugLocation) {
-            DILocalScope *scope = debugLocation->getScope();
-            cout << "  ";
-            if (scope) {
-                DISubprogram *subprogram = scope->getSubprogram();
-                if (subprogram) {
-                    const char* name = subprogram->getName().data();
-                    cout << name << " ";
-                }
-            }
-
-            cout << debugLocation->getFilename().data() << ":" << debugLocation->getLine() << std::endl;
-            debugLocation = debugLocation->getInlinedAt();
-        }
+    if (summary) {
+        print_summary(memcpys);
+    } else {
+        print_all(memcpys);
     }
-
 }
